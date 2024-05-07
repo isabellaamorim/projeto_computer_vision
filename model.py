@@ -191,12 +191,15 @@ def recognize_from_image(filename, detector):
         detect_object = detect_objects(x, detector)
 
     # plot result
-    res_img = plot_results(detect_object, img, category)
+    res_img, results = plot_results(detect_object, img, category)
     savepath = get_savepath(args.savepath, filename)
     logger.info(f'saved at : {savepath}')
     cv2.imwrite(savepath, res_img)
 
+    return results
+
 def main():
+        
         # model files check and download
         check_and_download_models(weight_path, model_path, REMOTE_PATH)
 
@@ -214,9 +217,13 @@ def main():
         for image_path in args.input:
             # prepare input data
             logger.info(image_path)
-            recognize_from_image(image_path, detector)
+            results = recognize_from_image(image_path, detector)
 
         logger.info('Script finished successfully.')
+
+        return results
+
+all_results = {} 
 
 for i in range(0,n_imgs):
 
@@ -225,7 +232,6 @@ for i in range(0,n_imgs):
 
     weight_path, model_path = DATASETS_MODEL_PATH['df2']
     category = DATASETS_CATEGORY['df2']
-
     
     SAVE_IMAGE_PATH = 'output_{}_df2.png'.format(i)
 
@@ -235,8 +241,8 @@ for i in range(0,n_imgs):
     args = update_parser(parser)
 
     if __name__ == '__main__':
-        main()
-
+        results_df2 = main()
+        
     weight_path, model_path = DATASETS_MODEL_PATH['modanet']
     category = DATASETS_CATEGORY['modanet']
 
@@ -248,4 +254,30 @@ for i in range(0,n_imgs):
     args = update_parser(parser)
 
     if __name__ == '__main__':
-        main()
+        results_modanet = main()
+
+    results = results_df2 + results_modanet
+    if 'trousers' in results and 'pants' in results:
+        results.remove('trousers')
+    if 'outer' in results and ('long sleeve outwear' or 'long sleeve top') in results:
+        results.remove('outer')
+    if 'dress' in results and ('long sleeve dress' or 'short sleeve dress') in results:
+        results.remove('dress')
+    if 'dress' in results and ('vest dress' or 'sling dress') in results:
+        results.remove('vest dress')
+        results.remove('sling dress')
+    if ('short sleeve top' or 'long sleeve top') in results and 'top' in results:
+        results.remove('top')
+
+    results = list(filter(lambda x: x != 'footwear', results))
+    results = list(filter(lambda x: x != 'belt', results))
+    results = list(filter(lambda x: x != 'bag', results))
+    results = list(filter(lambda x: x != 'boots', results))
+    results = list(filter(lambda x: x != 'sunglasses', results))
+    results = list(filter(lambda x: x != 'headwear', results))
+
+    results = set(results)
+
+    all_results[i] = results
+
+print(all_results)
