@@ -97,7 +97,7 @@ def reverse_letterbox(detections, img, det_shape):
     return new_detections
 
 
-def plot_results(detector, img, category=None, segm_masks=None, logging=True):
+def plot_results(detector, img, category=None, segm_masks=None, logging=False):
     """
     :param detector: ailia.Detector, or list of ailia.DetectorObject
     :param img: ndarray data of image
@@ -114,9 +114,10 @@ def plot_results(detector, img, category=None, segm_masks=None, logging=True):
 
     # prepare color data
     colors = []
+    results = []
     for idx in range(count):
         obj = detector.get_object(idx) if hasattr(detector, 'get_object') else detector[idx]
-
+        results.append(category[int(obj.category)])
         # print result
         if logging:
             print(f'+ idx={idx}')
@@ -205,7 +206,7 @@ def plot_results(detector, img, category=None, segm_masks=None, logging=True):
             text_color,
             1
         )
-    return img
+    return img, results
 
 
 def write_predictions(file_name, detector, img=None, category=None, file_type='txt'):
