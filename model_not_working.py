@@ -1,23 +1,20 @@
 import ailia
-
 import numpy as np
 import tempfile
 import cv2
 import os
 import urllib.request
-
 import sys
 import time
 from collections import OrderedDict
-
 from PIL import Image
 
 sys.path.append('util')
 from util.arg_utils import get_base_parser, update_parser, get_savepath  # noqa: E402
 from util.model_utils import check_and_download_models  # noqa: E402
 from util.detector_utils import plot_results, load_image, write_predictions  # noqa: E402
-
 from logging import getLogger   # noqa: E402
+
 logger = getLogger(__name__)
 
 REMOTE_PATH = 'https://storage.googleapis.com/ailia-models/clothing-detection/'
@@ -44,7 +41,7 @@ DATASETS_CATEGORY = {
 
 model_path = "yolov3.opt.onnx.prototxt"
 weight_path = "yolov3.opt.onnx"
-img_path ="pessoas.png"
+img_path = "pessoas.png"
 
 print("downloading ...")
 
@@ -225,14 +222,12 @@ def main():
 
 all_results = {} 
 
-for i in range(0,n_imgs):
-
+for i in range(0, n_imgs):
     IMAGE_PATH = 'rectangle_{}.jpg'.format(i)
     print(IMAGE_PATH)
 
     weight_path, model_path = DATASETS_MODEL_PATH['df2']
     category = DATASETS_CATEGORY['df2']
-
     
     SAVE_IMAGE_PATH = 'output_{}_df2.png'.format(i)
 
@@ -240,14 +235,12 @@ for i in range(0,n_imgs):
         'Clothing detection model', IMAGE_PATH, SAVE_IMAGE_PATH
     )
     args = update_parser(parser)
-    
 
     if __name__ == '__main__':
         results_df2 = main()
         
     weight_path, model_path = DATASETS_MODEL_PATH['modanet']
     category = DATASETS_CATEGORY['modanet']
-    
 
     SAVE_IMAGE_PATH = 'output_{}_modanet.png'.format(i)
 
@@ -256,36 +249,40 @@ for i in range(0,n_imgs):
     )
     args = update_parser(parser)
 
-
     if __name__ == '__main__':
         results_modanet = main()
 
-    results = results_df2 + results_modanet
+    # Combine results from both models
+    results = {}
+    for idx, cat in enumerate(category):
+        prob_df2 = results_df2.get(cat, 0)
+        prob_modanet = results_modanet.get(cat, 0)
+        if prob_df2 or prob_modanet:
+            results[cat] = (prob_df2, prob_modanet)
+
+    # Apply filters to remove unwanted categories
     if 'trousers' in results and 'pants' in results:
-        results.remove('trousers')
+        results.pop('trousers')
     if 'outer' in results and ('long sleeve outwear' or 'long sleeve top') in results:
-        results.remove('outer')
+        results.pop('outer')
     if 'dress' in results and ('long sleeve dress' or 'short sleeve dress') in results:
-        results.remove('dress')
+        results.pop('dress')
     if 'dress' in results and ('vest dress' or 'sling dress') in results:
-        results.remove('vest dress')
-        results.remove('sling dress')
+        results.pop('vest dress')
+        results.pop('sling dress')
     if ('short sleeve top' or 'long sleeve top') in results and 'top' in results:
-        results.remove('top')
+        results.pop('top')
+    results.pop('footwear', None)
+    results.pop('belt', None)
+    results.pop('bag', None)
+    results.pop('boots', None)
+    results.pop('sunglasses', None)
+    results.pop('headwear', None)
 
-    results = list(filter(lambda x: x != 'footwear', results))
-    results = list(filter(lambda x: x != 'belt', results))
-    results = list(filter(lambda x: x != 'bag', results))
-    results = list(filter(lambda x: x != 'boots', results))
-    results = list(filter(lambda x: x != 'sunglasses', results))
-    results = list(filter(lambda x: x != 'headwear', results))
-
-    results = set(results)
-
+    # Assigning to all_results
     all_results[i] = results
 
 print(all_results)
-
 
 ##criando uma função para fazer a predição
 
@@ -307,4 +304,3 @@ for a,i in all_results.items():
             temp_escala_1_3.append(df2_dic[j])
     print(f'minha previsão é de {np.mean(temp_escala_1_3)} dado a vetimenta da pessoa {a}')
     temp_escala_1_3 = []
-
