@@ -305,6 +305,6 @@ for a,i in all_results.items():
             temp_escala_1_3.append(modanet_dic[j])
         if j in df2_dic.keys():
             temp_escala_1_3.append(df2_dic[j])
-    print(f'minha previsão é de {np.mean(temp_escala_1_3)} dado a vetimenta da pessoa {a}')
+    print(f'minha previsão é de {np.mean(temp_escala_1_3):.2f} dado a vetimenta da pessoa {a}')
     temp_escala_1_3 = []
 
