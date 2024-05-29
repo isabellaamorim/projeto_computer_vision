@@ -13,14 +13,16 @@ from collections import OrderedDict
 from PIL import Image
 
 sys.path.append('util')
-from util.arg_utils import get_base_parser, update_parser, get_savepath  # noqa: E402
-from util.model_utils import check_and_download_models  # noqa: E402
-from util.detector_utils import plot_results, load_image, write_predictions  # noqa: E402
+from arg_utils import get_base_parser, update_parser, get_savepath  # noqa: E402
+from model_utils import check_and_download_models  # noqa: E402
+from detector_utils import plot_results, load_image, write_predictions  # noqa: E402
 
 from logging import getLogger   # noqa: E402
 logger = getLogger(__name__)
 
-REMOTE_PATH = 'https://storage.googleapis.com/ailia-models/clothing-detection/'
+
+REMOTE_PATH_CLOTHING_DETECTION = 'https://storage.googleapis.com/ailia-models/clothing-detection/'
+REMOTE_PATH_YOLO = "https://storage.googleapis.com/ailia-models/yolov3/"
 
 DATASETS_MODEL_PATH = OrderedDict([
     (
@@ -44,74 +46,72 @@ DATASETS_CATEGORY = {
 
 model_path = "yolov3.opt.onnx.prototxt"
 weight_path = "yolov3.opt.onnx"
-img_path ="pessoas.png"
 
-print("downloading ...")
 
-if not os.path.exists(model_path):
-    urllib.request.urlretrieve("https://storage.googleapis.com/ailia-models/yolov3/"+model_path,model_path)
-if not os.path.exists(weight_path):
-    urllib.request.urlretrieve("https://storage.googleapis.com/ailia-models/yolov3/"+weight_path,weight_path)
 
-env_id = ailia.get_gpu_environment_id()
-categories = 80
-detector = ailia.Detector(model_path, weight_path, categories, format=ailia.NETWORK_IMAGE_FORMAT_RGB, channel=ailia.NETWORK_IMAGE_CHANNEL_FIRST, range=ailia.NETWORK_IMAGE_RANGE_U_FP32, algorithm=ailia.DETECTOR_ALGORITHM_YOLOV3, env_id=env_id)
+def download_models(model_path, weight_path):
+    print("Downloading models...")
+    if not os.path.exists(model_path):
+        urllib.request.urlretrieve(REMOTE_PATH_YOLO + model_path, model_path)
+    if not os.path.exists(weight_path):
+        urllib.request.urlretrieve(REMOTE_PATH_YOLO + weight_path, weight_path)
 
-img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED )
-output_img = img.copy()
-if img.shape[2] == 3 :
-    img = cv2.cvtColor( img, cv2.COLOR_BGR2BGRA )
-elif img.shape[2] == 1 : 
-    img = cv2.cvtColor( img, cv2.COLOR_GRAY2BGRA )
+def initialize_yolo_detector(model_path, weight_path):
 
-print( "img.shape=" + str(img.shape) )
+    download_models(model_path, weight_path)
 
-w, h = img.shape[1], img.shape[0]
+    env_id = ailia.get_gpu_environment_id()
+    categories = 80  
+    return ailia.Detector(model_path, weight_path, categories,
+                          format=ailia.NETWORK_IMAGE_FORMAT_RGB,
+                          channel=ailia.NETWORK_IMAGE_CHANNEL_FIRST,
+                          range=ailia.NETWORK_IMAGE_RANGE_U_FP32,
+                          algorithm=ailia.DETECTOR_ALGORITHM_YOLOV3,
+                          env_id=env_id)
 
-threshold = 0.4
-iou = 0.45
-detector.compute(img, threshold, iou)
+def detect_people(img_path):
 
-coco_category=["person"]
+    detector = initialize_yolo_detector(model_path, weight_path)
 
-count = detector.get_object_count()
+    threshold = 0.4
+    iou = 0.45
 
-print("object_count=" + str(count))
+    img = cv2.imread(img_path, cv2.IMREAD_UNCHANGED)
+    output_img = img.copy()
+    if img.shape[2] == 3 :
+        img = cv2.cvtColor( img, cv2.COLOR_BGR2BGRA )
+    elif img.shape[2] == 1 : 
+        img = cv2.cvtColor( img, cv2.COLOR_GRAY2BGRA )
 
-n_imgs = 0
+    w, h = img.shape[1], img.shape[0]
+    detector.compute(img, threshold, iou)
+    count = detector.get_object_count()
 
-for idx in range(count):
-    obj = detector.get_object(idx)
+    detected_people = []
+    for idx in range(count):
+        obj = detector.get_object(idx)
 
-    # Verificar se o objeto tem uma área detectada
-    if obj.w > 0 and obj.h > 0:
-        # Criar uma nova imagem contendo apenas o retângulo detectado
-        roi = output_img[int(h*obj.y):int(h*(obj.y+obj.h)), int(w*obj.x):int(w*(obj.x+obj.w))]
+        if obj.w > 0 and obj.h > 0 and obj.category == 0:
 
-        # Verificar se a região contém pixels antes de salvar
-        if roi.size != 0:
-            # Salvar a nova imagem com o nome baseado no índice atual
-            n_imgs += 1
-            cv2.imwrite("rectangle_" + str(idx) + ".jpg", roi)
-            
-THRESHOLD = 0.39
-IOU = 0.4
-DETECTION_WIDTH = 416
+            roi = output_img[int(h * obj.y):int(h * (obj.y + obj.h)), int(w * obj.x):int(w * (obj.x + obj.w))]
 
-print(n_imgs)
+            if roi.size != 0:
+                detected_people.append(roi)
+
+    return detected_people
 
 def letterbox_image(image, size):
-        '''resize image with unchanged aspect ratio using padding'''
-        iw, ih = image.size
-        w, h = size
-        scale = min(w / iw, h / ih)
-        nw = int(iw * scale)
-        nh = int(ih * scale)
+            '''resize image with unchanged aspect ratio using padding'''
+            iw, ih = image.size
+            w, h = size
+            scale = min(w / iw, h / ih)
+            nw = int(iw * scale)
+            nh = int(ih * scale)
 
-        image = image.resize((nw, nh), Image.BICUBIC)
-        new_image = Image.new('RGB', size, (128, 128, 128))
-        new_image.paste(image, ((w - nw) // 2, (h - nh) // 2))
-        return new_image
+            image = image.resize((nw, nh), Image.BICUBIC)
+            new_image = Image.new('RGB', size, (128, 128, 128))
+            new_image.paste(image, ((w - nw) // 2, (h - nh) // 2))
+            return new_image
 
 def preprocess(img, resize):
     image = Image.fromarray(img)
@@ -147,33 +147,33 @@ def post_processing(img_shape, all_boxes, all_scores, indices):
 
     return bboxes
 
-# ======================
-# Main functions
-# ======================
-
 def detect_objects(img, detector):
-    img_shape = img.shape[:2]
+        
+        THRESHOLD = 0.39
+        IOU = 0.4
+        DETECTION_WIDTH = 416
 
-    # initial preprocesses
-    img = preprocess(img, resize=DETECTION_WIDTH)
+        img_shape = img.shape[:2]
 
-    # feedforward
-    all_boxes, all_scores, indices = detector.predict({
-        'input_1': img,
-        'image_shape': np.array([img_shape], np.float32),
-        'layer.score_threshold': np.array([THRESHOLD], np.float32),
-        'iou_threshold': np.array([IOU], np.float32),
-    })
+        # initial preprocesses
+        img = preprocess(img, resize=DETECTION_WIDTH)
 
-    # post processes
-    detect_object = post_processing(img_shape, all_boxes, all_scores, indices)
+        # feedforward
+        all_boxes, all_scores, indices = detector.predict({
+            'input_1': img,
+            'image_shape': np.array([img_shape], np.float32),
+            'layer.score_threshold': np.array([THRESHOLD], np.float32),
+            'iou_threshold': np.array([IOU], np.float32),
+        })
 
-    return detect_object
+        # post processes
+        detect_object = post_processing(img_shape, all_boxes, all_scores, indices)
 
+        return detect_object
 
-def recognize_from_image(filename, detector):
+## RECEBE ARGS E CATEGORY
+def recognize_from_image(img, detector, args, category):
     # prepare input data
-    img = load_image(filename)
     logger.debug(f'input image shape: {img.shape}')
 
     x = cv2.cvtColor(img, cv2.COLOR_BGRA2RGB)
@@ -190,121 +190,134 @@ def recognize_from_image(filename, detector):
     else:
         detect_object = detect_objects(x, detector)
 
-    # plot result
     res_img, results = plot_results(detect_object, img, category)
-    savepath = get_savepath(args.savepath, filename)
-    logger.info(f'saved at : {savepath}')
-    cv2.imwrite(savepath, res_img)
 
     return results
 
-def main():
-        
-        # model files check and download
-        check_and_download_models(weight_path, model_path, REMOTE_PATH)
+def detect_clothes(img, weight_path, model_path, args, category):
+            
+    DETECTION_WIDTH = 416
 
-        # initialize
-        detector = ailia.Net(model_path, weight_path, env_id=args.env_id)
-        print(args.env_id)
-        id_image_shape = detector.find_blob_index_by_name("image_shape")
-        detector.set_input_shape(
-            (1, 3, DETECTION_WIDTH, DETECTION_WIDTH)
+    # model files check and download
+    check_and_download_models(weight_path, model_path, REMOTE_PATH_CLOTHING_DETECTION)
+
+    # initialize
+    detector = ailia.Net(model_path, weight_path, env_id=args.env_id)
+    
+    id_image_shape = detector.find_blob_index_by_name("image_shape")
+    detector.set_input_shape(
+        (1, 3, DETECTION_WIDTH, DETECTION_WIDTH)
+    )
+    detector.set_input_blob_shape((1, 2), id_image_shape)
+
+    results = recognize_from_image(img, detector, args, category)
+
+    logger.info('Script finished successfully.')
+
+    return results
+
+def recebe_imagem(img_path):
+    
+    detected_people = detect_people(img_path)
+
+    all_results = {} 
+    for i in range(0, len(detected_people)):
+
+        img = detected_people[i]
+
+        weight_path, model_path = DATASETS_MODEL_PATH['df2']
+        category = DATASETS_CATEGORY['df2']
+
+        parser = get_base_parser(
+            'Clothing detection model'
         )
-        detector.set_input_blob_shape((1, 2), id_image_shape)
+        args = update_parser(parser)
 
-        # image mode
-        # input image loop
-        for image_path in args.input:
-            # prepare input data
-            logger.info(image_path)
-            results = recognize_from_image(image_path, detector)
+        results_df2 = detect_clothes(img, weight_path, model_path, args, category)
+            
+        weight_path, model_path = DATASETS_MODEL_PATH['modanet']
+        category = DATASETS_CATEGORY['modanet']
 
-        logger.info('Script finished successfully.')
+        results_modanet = detect_clothes(img, weight_path, model_path, args, category)
 
-        return results
+        results = results_df2 + results_modanet
+        if 'trousers' in results and 'pants' in results:
+            results.remove('trousers')
 
-all_results = {} 
+        if 'outer' in results:
+            if 'long sleeve outwear' in results or 'long sleeve top' in results:
+                results.remove('outer')
 
-for i in range(0,n_imgs):
+        if 'dress' in results:
+            if 'long sleeve dress' in results or 'short sleeve dress' in results:
+                results.remove('dress')
 
-    IMAGE_PATH = 'rectangle_{}.jpg'.format(i)
-    print(IMAGE_PATH)
+        if 'dress' in results:
+            if 'vest dress' in results:
+                results.remove('vest dress')
+            if 'sling dress' in results:
+                results.remove('sling dress')
 
-    weight_path, model_path = DATASETS_MODEL_PATH['df2']
-    category = DATASETS_CATEGORY['df2']
+        if 'top' in results:
+            if 'short sleeve top' in results or 'long sleeve top' in results:
+                results.remove('top')
 
-    
-    SAVE_IMAGE_PATH = 'output_{}_df2.png'.format(i)
+        results = list(filter(lambda x: x != 'footwear', results))
+        results = list(filter(lambda x: x != 'belt', results))
+        results = list(filter(lambda x: x != 'bag', results))
+        results = list(filter(lambda x: x != 'boots', results))
+        results = list(filter(lambda x: x != 'sunglasses', results))
+        results = list(filter(lambda x: x != 'headwear', results))
+        results = list(filter(lambda x: x != 'sling', results))
 
-    parser = get_base_parser(
-        'Clothing detection model', IMAGE_PATH, SAVE_IMAGE_PATH
-    )
-    args = update_parser(parser)
-    
+        results = set(results)
 
-    if __name__ == '__main__':
-        results_df2 = main()
-        
-    weight_path, model_path = DATASETS_MODEL_PATH['modanet']
-    category = DATASETS_CATEGORY['modanet']
-    
+        all_results[i] = results
 
-    SAVE_IMAGE_PATH = 'output_{}_modanet.png'.format(i)
+    return all_results
 
-    parser = get_base_parser(
-        'Clothing detection model', IMAGE_PATH, SAVE_IMAGE_PATH
-    )
-    args = update_parser(parser)
-
-
-    if __name__ == '__main__':
-        results_modanet = main()
-
-    results = results_df2 + results_modanet
-    if 'trousers' in results and 'pants' in results:
-        results.remove('trousers')
-    if 'outer' in results and ('long sleeve outwear' or 'long sleeve top') in results:
-        results.remove('outer')
-    if 'dress' in results and ('long sleeve dress' or 'short sleeve dress') in results:
-        results.remove('dress')
-    if 'dress' in results and ('vest dress' or 'sling dress') in results:
-        results.remove('vest dress')
-        results.remove('sling dress')
-    if ('short sleeve top' or 'long sleeve top') in results and 'top' in results:
-        results.remove('top')
-
-    results = list(filter(lambda x: x != 'footwear', results))
-    results = list(filter(lambda x: x != 'belt', results))
-    results = list(filter(lambda x: x != 'bag', results))
-    results = list(filter(lambda x: x != 'boots', results))
-    results = list(filter(lambda x: x != 'sunglasses', results))
-    results = list(filter(lambda x: x != 'headwear', results))
-
-    results = set(results)
-
-    all_results[i] = results
-
-print(all_results)
-
-
-##criando uma função para fazer a predição
-
-modanet_dic = {
-        "bag" : 0 , "belt" : 0, "boots" : 1.6, "footwear": 2.4, "outer" : 2.2, "dress" : 2.6, "sunglasses" : 3,
-        "pants" : 1.8, "top": 2.6, "shorts": 3, "skirt": 2.5, "headwear":1.5, "scarf/tie": 1.4}
-df2_dic = {
-        "short sleeve top":2.8, "long sleeve top":1.2, "short sleeve outwear":1.4,
-        "long sleeve outwear":1, "vest":2.1, "sling":2.3, "shorts":2.7, "trousers": 2, "skirt": 2.5,
-        "short sleeve dress":2.6, "long sleeve dress":1.8, "vest dress":3, "sling dress":2.9
+def weather_predictor(results): 
+    print(results)
+    clothes_values = {
+        'short sleeve top': 0.7,
+        'long sleeve top': 0.1,
+        'short sleeve outwear': 0.5,
+        'long sleeve outwear': 0.1,
+        'vest': 0.5,
+        'shorts': 0.8,
+        'trousers': 0.5,
+        'skirt': 0.7,
+        'short sleeve dress': 0.7,
+        'long sleeve dress': 0.3,
+        'vest dress': 0.5,
+        'sling dress': 0.5,
+        'outer' : 0.2,
+        'dress' : 0.7,
+        'top' : 0.5,
+        'pants' : 0.5,
+        'scarf/tie' : 0.1
     }
 
-temp_escala_1_3 = []
-for a,i in all_results.items():
-    for j in i:
-        if j in modanet_dic.keys():
-            temp_escala_1_3.append(modanet_dic[j])
-        if j in df2_dic.keys():
-            temp_escala_1_3.append(df2_dic[j])
-    print(f'minha previsão é de {np.mean(temp_escala_1_3):.2f} dado a vetimenta da pessoa {a}')
-    temp_escala_1_3 = []
+    soma = 0
+    total_clothes = 0  # Contador para o total de peças de roupa consideradas
+    for result in results.values():  # Acessa os conjuntos de roupas em cada resultado
+        for clothe in result:  # Itera sobre cada peça de roupa no conjunto
+            if clothe in clothes_values:  # Verifica se a peça de roupa está no dicionário
+                soma += clothes_values[clothe]
+                total_clothes += 1  # Aumenta o contador para cada peça válida
 
+    if total_clothes > 0:
+        media = soma / total_clothes
+        
+    if media >= 0.7:
+        return 'Quente'
+    elif media >= 0.5 and media < 0.7:
+        return 'Ameno'
+    else:
+        return 'Frio'
+
+def main():
+    pass
+
+if __name__ == '__main__':
+    main()

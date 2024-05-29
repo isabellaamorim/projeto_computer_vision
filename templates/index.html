@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Image</title>
+</head>
+<body>
+    <h1>Upload an Image</h1>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="file" name="file">
+        <input type="submit" value="Upload">
+    </form>
+
+    {% if image_url %}
+    <h2>Uploaded Image:</h2>
+    <img src="{{ image_url }}" alt="Uploaded Image" style="max-width: 500px;">
+    {% endif %}
+
+    {% if results %}
+    <h2>Image Processing Results:</h2>
+    <ul>
+        {% for key, value in results.items() %}
+        <li>{{ key }}: {{ value }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if clima is not none %}
+    <h2>Climate Prediction:</h2>
+    <p>{{ clima }}</p>
+    {% endif %}
+</body>
+</html>

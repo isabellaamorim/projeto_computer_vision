@@ -38,7 +38,7 @@ def check_file_existance(filename):
 
 
 def get_base_parser(
-        description, default_input, default_save, input_ftype='image',
+        description, input_ftype='image',
 ):
     """
     Get ailia default argument parser
@@ -62,22 +62,22 @@ def get_base_parser(
         description=description,
         conflict_handler='resolve',  # allow to overwrite default argument
     )
-    parser.add_argument(
-        '-i', '--input', nargs='*', metavar='IMAGE/VIDEO', default=default_input,
-        help=('The default (model-dependent) input data (image / video) path. '
-              'If a directory name is specified, the model will be run for '
-              'the files inside. File type is specified by --ftype argument')
-    )
+    #parser.add_argument(
+    #    '-i', '--input', nargs='*', metavar='IMAGE/VIDEO', default=default_input,
+    #    help=('The default (model-dependent) input data (image / video) path. '
+    #          'If a directory name is specified, the model will be run for '
+    #          'the files inside. File type is specified by --ftype argument')
+    #)
     parser.add_argument(
         '-v', '--video', metavar='VIDEO', default=None,
         help=('You can convert the input video by entering style image.'
               'If the int variable is given, '
               'corresponding webcam input will be used.')
     )
-    parser.add_argument(
-        '-s', '--savepath', metavar='SAVE_PATH', default=default_save,
-        help='Save path for the output (image / video / text).'
-    )
+    #parser.add_argument(
+    #    '-s', '--savepath', metavar='SAVE_PATH', default=default_save,
+    #    help='Save path for the output (image / video / text).'
+    #)
     parser.add_argument(
         '-b', '--benchmark', action='store_true',
         help=('Running the inference on the same input 5 times to measure '
@@ -171,7 +171,7 @@ def update_parser(parser, check_input_type=True, large_model=False):
         args.ftype = 'video'
         args.input = None # force video mode
 
-    if isinstance(args.input, list) and len(args.input) == 1:
+    '''if isinstance(args.input, list) and len(args.input) == 1:
         args.input = args.input[0] # support folder input
 
     if args.input is None:
@@ -210,7 +210,7 @@ def update_parser(parser, check_input_type=True, large_model=False):
     else:
         if check_input_type:
             logger.error('specified input is not file path nor directory path')
-            sys.exit(0)
+            sys.exit(0)'''
 
     # -------------------------------------------------------------------------
     return args
