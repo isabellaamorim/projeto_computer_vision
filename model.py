@@ -310,11 +310,11 @@ def weather_predictor(results):
         media = soma / total_clothes
         
     if media >= 0.7:
-        return 'Quente'
+        return 'Quente com temperatura de ' +str(media)+ ' graus Isa'
     elif media >= 0.5 and media < 0.7:
-        return 'Ameno'
+        return 'Ameno com temperatura de ' +str(media)+ ' graus Isa'
     else:
-        return 'Frio'
+        return 'Frio com temperatura de ' +str(media)+ ' graus Isa'
 
 def main():
     pass

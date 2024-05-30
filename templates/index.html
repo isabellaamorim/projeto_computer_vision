@@ -4,31 +4,116 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Image</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #abffce; /* Fundo da página um pouco mais escuro */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: #f8f9fa;
+        }
+        .container {
+            background-color: #f8f9fa; /* Contêiner central claro */
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            color: #343a40; /* Cor do texto do contêiner */
+        }
+        h1 {
+            color: #007bff;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            margin-bottom: 10px;
+        }
+        input[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        img {
+            max-width: 60%; /* Reduzir o tamanho máximo da imagem */
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            background-color: #e9ecef;
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        h2 {
+            color: #343a40;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .new-upload {
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Upload an Image</h1>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <input type="file" name="file">
-        <input type="submit" value="Upload">
-    </form>
+    <div class="container">
+        <h1>Upload an Image</h1>
+        <form action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" required>
+            <input type="submit" value="Upload">
+        </form>
 
-    {% if image_url %}
-    <h2>Uploaded Image:</h2>
-    <img src="{{ image_url }}" alt="Uploaded Image" style="max-width: 500px;">
-    {% endif %}
+        {% if image_url %}
+        <div class="results">
+            <h2>Uploaded Image:</h2>
+            <img src="{{ image_url }}" alt="Uploaded Image">
+        </div>
+        {% endif %}
 
-    {% if results %}
-    <h2>Image Processing Results:</h2>
-    <ul>
-        {% for key, value in results.items() %}
-        <li>{{ key }}: {{ value }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
+        {% if results %}
+        <div class="results">
+            <h2>Image Processing Results:</h2>
+            <ul>
+                {% for key, value in results.items() %}
+                <li>{{ key }}: {{ value }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
 
-    {% if clima is not none %}
-    <h2>Climate Prediction:</h2>
-    <p>{{ clima }}</p>
-    {% endif %}
+        {% if clima is not none %}
+        <div class="results">
+            <h2>Climate Prediction:</h2>
+            <p>{{ clima }}</p>
+        </div>
+        {% endif %}
+
+        {% if image_url or results or clima %}
+        <div class="new-upload">
+            <h2>Upload Another Image</h2>
+            <form action="/upload" method="post" enctype="multipart/form-data">
+                <input type="file" name="file" required>
+                <input type="submit" value="Upload">
+            </form>
+        </div>
+        {% endif %}
+    </div>
 </body>
 </html>
