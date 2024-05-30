@@ -1,7 +1,7 @@
 # projeto_computer_vision
 
 ### Resumo
-Esse projeto tem o intuito de avaliar uma imagem estática de uma pessoa e fazer uma predição aproximada da temperatura do local que essa pessoa se encontra.
+Esse projeto tem o intuito de avaliar uma imagem estática de uma pessoa e fazer uma predição aproximada da temperatura do local que essa pessoa se encontra com base nas roupas que a pessoa estiver usando.
 
 Para código base de identificação de roupas e pessoas, foi utilizado o repositório abaixo:
 
