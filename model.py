@@ -1,7 +1,7 @@
 import ailia
 
 import numpy as np
-import tempfile
+import matplotlib.pyplot as plt
 import cv2
 import os
 import urllib.request
@@ -310,11 +310,11 @@ def weather_predictor(results):
         media = soma / total_clothes
         
     if media >= 0.7:
-        return 'Quente com temperatura de ' +str(media)+ ' graus Isa'
+        return media, 'Quente'
     elif media >= 0.5 and media < 0.7:
-        return 'Ameno com temperatura de ' +str(media)+ ' graus Isa'
+        return media, 'Ameno'
     else:
-        return 'Frio com temperatura de ' +str(media)+ ' graus Isa'
+        return media, 'Frio'
 
 def main():
     pass

@@ -1,1 +1,6 @@
-*.opt
+yolov3-df2.opt.onnx
+yolov3-df2.opt.onnx.prototxt
+yolov3-modanet.opt.onnx
+yolov3-modanet.opt.onnx.prototxt
+yolov3.opt.onnx
+yolov3.opt.onnx.prototxt
