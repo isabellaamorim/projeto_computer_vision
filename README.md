@@ -22,3 +22,5 @@ No seu terminal, rode o comando python ./app.py e acesse a rota fornecida no pro
 
 Insira uma imagem no formato expecificado (na pasta 'imagens teste' há algumas imagens que podem ser utilizadas), clique em upload e, após um tempo de processamento, veja a mágica acontecer.
 
+OBS: A primeira imagem demorará mais para ser analisada, pois o código precisará fazer o dowload dos pesos. 
+
